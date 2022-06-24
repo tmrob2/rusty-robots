@@ -16,14 +16,10 @@
 <!-- PROJECT LOGO -->
 <br />
 <div align="center">
-  <a href="https://github.com/tmrob2/rusty-robots">
-    <img src="images/logo.png" alt="Logo" width="80" height="80">
-  </a>
-
 <h3 align="center">Rusty Robots</h3>
 
   <p align="center">
-    A pure rust implementation for solving multiple-objective task allocation problems in multiagent systems 
+    A rust implementation for solving multiple-objective task allocation problems in multiagent systems 
     <br />
     <a href="https://github.com/tmrob2/rusty-robots"><strong>Explore the docs »</strong></a>
     <br />
@@ -84,15 +80,13 @@ and the probability requirement of completing of tasks.
 
 [![Product Name Screen Shot][product-screenshot]](https://github/tmrob2/rusty-robots/)
 
-Here's a blank template to get started: To avoid retyping too much info. Do a search and replace with your text editor for the following: `tmrob2`, `rusty-robots`, `twitter_handle`, `linkedin_username`, `email_client`, `email`, `project_title`, `project_description`
-
 <p align="right">(<a href="#top">back to top</a>)</p>
 
 
 
 ### Built With
 
-* [Next.js](https://nextjs.org/)
+* [Rust v1.61](https://www.rust-lang.org/)
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
@@ -101,32 +95,25 @@ Here's a blank template to get started: To avoid retyping too much info. Do a se
 <!-- GETTING STARTED -->
 ## Getting Started
 
-This is an example of how you may give instructions on setting up your project locally.
-To get a local copy up and running follow these simple example steps.
+### Why Rust?
+Rust is a fast memory safe language which is very useful in this scenario. In models with large state-spaces
+we will want to construct a model, do some computation, and then drop it without memory leaks. We can guarantee
+memory safety using this framework. This project also uses state of the art linear algebra libraries to compute
+matrix-vector products building upon 20 years of sparse-matrix computation rather than re-implementing these
+libraries. 
+
+### Project Setup
+Clone project and compile with Cargo using the associated manifest. 
+```shell
+cargo build --bin=env_bin --release
+cargo run --bin=env_bin --release
+```
 
 ### Prerequisites
 
-This is an example of how to list things you need to use the software and how to install them.
-* npm
-  ```sh
-  npm install npm@latest -g
-  ```
-
-### Installation
-
-1. Get a free API Key at [https://example.com](https://example.com)
-2. Clone the repo
-   ```sh
-   git clone https://github.com/tmrob2/rusty-robots.git
-   ```
-3. Install NPM packages
-   ```sh
-   npm install
-   ```
-4. Enter your API in `config.js`
-   ```js
-   const API_KEY = 'ENTER YOUR API';
-   ```
+To solve a MOTAP problem we require `motap-hdd` from https://github.com/tmrob2/motap-hdd. Follow the
+setup instructions of this project. This will require seting up `Gurobi Optimizer` and `CXSparse` as a
+sparse matrix solver. 
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
@@ -135,9 +122,55 @@ This is an example of how to list things you need to use the software and how to
 <!-- USAGE EXAMPLES -->
 ## Usage
 
-Use this space to show useful examples of how a project can be used. Additional screenshots, code examples and demos work well in this space. You may also link to more resources.
+### Constructing a simulation model
+This project is designed as a helper API for configuring large scale task allocation problems. First we
+require some environment. An environment can be constructed as follows. Environments can be added to the
+`env` directory. 
 
-_For more examples, please refer to the [Documentation](https://example.com)_
+### Constructing a task
+To specify DFA the following convention can be followed. Suppose that we want to verify that a robot goes to 
+a certain position and is facing a specific direction. In this framework a DFA is comprised of two generics
+`W` which is a word and `T` which is usually a pointer to data that the DFA needs to know about the environment.
+We can specify a deterministic transition function using the following:
+```rust
+// LowResWord corresponds to a word in an alphabet in this case
+// Info is a memory reference to all information about the environment not needing to be cloned
+fn goto_rack_position(data: &Data<LowResWord, &Info>, qprime: i32, q: i32) -> i32 {
+    let info_ref = data.info.as_ref().unwrap();
+    if data.w.agent_position == info_ref.rack_positions[info_ref.lookup_rack] {
+        return qprime
+    } else {
+        return q
+    }
+}
+```
+The function specifies what to do at state `q` in a DFA. If an agent is at a particular position
+then we move forward in the DFA `q'` otherwise we stay at the current state `q`.
+
+A task can then be formed by specifying all states and which function to implement at this particular state.
+The following is an example of a replenishment task in a warehouse. At each state in the DFA a transition
+function is implemented to determine which state to move to next. 
+```rust
+fn lr_replenishment(data: &Data<LowResWord, &Info>) -> i32 {
+    let qprime = match data.q {
+        0 => {Ok(goto_rack_position(&data, 0, 1))}
+        1 => {Ok(goto_feed_position(&data))}
+        2 => {Ok(goto_rack_position(&data, 3, 2))}
+        3 => {Ok(finish(4))}
+        4 => {Ok(done(4))}
+        _ => {Err("Q state not found")}
+    };
+    match qprime {
+        Ok(i) => { i }
+        Err(_) => { -1 }
+    }
+}
+```
+
+
+### Constructing a rewards model
+
+### Forming a product MDP
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
