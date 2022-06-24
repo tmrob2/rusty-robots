@@ -113,7 +113,9 @@ cargo run --bin=env_bin --release
 
 To solve a MOTAP problem we require `motap-hdd` from https://github.com/tmrob2/motap-hdd. Follow the
 setup instructions of this project. This will require seting up `Gurobi Optimizer` and `CXSparse` as a
-sparse matrix solver. 
+sparse matrix solver.
+
+Cargo - The Rust package manager.
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
