@@ -1,0 +1,23 @@
+[package]
+name = "rusty-robots"
+version = "0.1.0"
+edition = "2021"
+authors = ["Thomas Robinson <tmr463@uowmail.edu.au>"]
+description = "An environment for solving multiagent task allocation problems under multiple objectives"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+scpm = { git = "https://github.com/tmrob2/motap-hdd/" }
+hashbrown = "0.12.1"
+itertools = "0.10.3"
+serde_json = "1.0.81"
+serde_yaml = "0.8"
+serde = "1.0.137"
+rand = "0.8.5"
+indicatif = "0.16.2"
+threadpool = "1.8.1"
+
+[[bin]]
+name = "warehouse"
+path = "src/bin/rusty-warehouse.rs"
