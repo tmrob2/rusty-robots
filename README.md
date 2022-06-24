@@ -109,6 +109,12 @@ cargo build --bin=env_bin --release
 cargo run --bin=env_bin --release
 ```
 
+On compilation of this crate, a file structure will be created that will be used to store data when constructing
+an SCPM. The file structure looks like:
+
+An environment variable `SCPM_HOME` is required to specify where this file structure should be located. It is best to 
+add this to the bottom of your `.bashrc`. 
+
 ### Prerequisites
 
 To solve a MOTAP problem we require `motap-hdd` from https://github.com/tmrob2/motap-hdd. Follow the
@@ -303,7 +309,34 @@ fn transition_map(&mut self, r: &f64) {
 
 ### Forming a Product MDP
 
-A product MDP is a tuple $M (S \times Q, (s_0, q_0), A, P', L') $
+A product MDP is a tuple $\mathcal{M} (S \times Q, (s_0, q_0), A, P', L') $ where
+* S - MDP state space
+* Q - DFA state space
+* $(s_0, q_0)$ - initial state
+* $A$ - set of actions 
+* $L$ - Labelling function $L': S \times Q \mapsto 2^\Sigma$
+* $P'$ - transition function $P': (S \times Q)  \times A \times (S \times Q ) \mapsto [0, 1]$
+
+The product MDP is implemented in the `motap-hdd` crate and can be called by defining a task
+and calling product from an environment reference. For example a warehouse product MDP could be constructed
+with something like the following:
+```rust
+let Q = (0..5).collect::<Vec<i32>>()
+// The DFA signature via init is:
+// (initial, state_space, accepting_states, rejecting_states, task_fn, extra_data)
+let mut task = DFA2::<_, _, &Info>::init(0, &Q, &[3], &[], lr_replenishment, Some(&warehouse_info)); 
+let mut mdp = low_fidelity_warehouse.product(&mut task, a as i32, t as i32, Some(&warehouse_info));
+```
+
+Usually these product MDPs are very demanding on memory, and as this framework aims for scalability
+we have to save the MDP state mapping $(S, Q) -> \mathtt{usize}$.
+
+```rust
+serialise_state_mapping(&make_serialised_state_map(&mdp.reverse_state_mapping), a as i32, t as i32);
+```
+
+Also the transition matrices must be saved to disk as they quickly overload system resources. This is 
+handled on construction of the SCPM and gets saved to the `transitions` directory. 
 
 ### Synthesising Schedulers
 
