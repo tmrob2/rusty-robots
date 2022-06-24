@@ -125,7 +125,21 @@ sparse matrix solver.
 ### Constructing a simulation model
 This project is designed as a helper API for configuring large scale task allocation problems. First we
 require some environment. An environment can be constructed as follows. Environments can be added to the
-`env` directory. 
+`env` directory. To implement an environment we have to implement the Env trait `env::gym_env::Env`:
+```rust
+pub trait Env<T, S, W> where T: Agent<S, W>, W: Clone {
+    // Construct the env and store in mem
+    fn make(na: i32, init_state: S) -> T;
+    // Construct a state space for the environment, states are generic S typed and can therefore be anything
+    // as long as the satisfy the trait requirements of the SCPM
+    fn state_space(&mut self);
+    // A transition step function
+    fn step(&mut self, state: &S, a: i32) -> Result<Vec<(S, f64, W)>, &'static str>;
+    // A transition map working through each state in the state space and applying a transition function 
+    // and word
+    fn transition_map(&mut self, r: &f64);
+}
+```
 
 ### Constructing a task
 To specify DFA the following convention can be followed. Suppose that we want to verify that a robot goes to 
