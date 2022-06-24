@@ -123,7 +123,7 @@ sparse matrix solver.
 ## Usage
 
 ### Constructing a simulation model
-This project is designed as a helper API for configuring large scale task allocation problems. First we
+This project is designed as a scalable API for configuring large task allocation problems. First we
 require some environment. An environment can be constructed as follows. Environments can be added to the
 `env` directory. To implement an environment we have to implement the Env trait `env::gym_env::Env`:
 ```rust
