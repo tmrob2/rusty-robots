@@ -9,3 +9,4 @@ pub trait Env<T, S, W> where T: Agent<S, W>, W: Clone {
 
     fn transition_map(&mut self, r: &f64);
 }
+

@@ -124,10 +124,12 @@ Cargo - The Rust package manager.
 <!-- USAGE EXAMPLES -->
 ## Usage
 
-### Constructing a simulation model
+### Constructing a Model of an Environment
+
 This project is designed as a scalable API for configuring large task allocation problems. First we
-require some environment. An environment can be constructed as follows. Environments can be added to the
-`env` directory. To implement an environment we have to implement the Env trait `env::gym_env::Env`:
+require some environment. An environment can be constructed as follows. To implement an environment we have 
+to implement the Env trait `env::gym_env::Env`. Environments can be added to the
+`env` directory.
 ```rust
 pub trait Env<T, S, W> where T: Agent<S, W>, W: Clone {
     // Construct the env and store in mem
@@ -142,8 +144,96 @@ pub trait Env<T, S, W> where T: Agent<S, W>, W: Clone {
     fn transition_map(&mut self, r: &f64);
 }
 ```
+See a full example
 
-### Constructing a task
+<details>
+<summary>Environment Example</summary>
+
+```rust
+use hashbrown::HashMap;
+use crate::mdp::agent::{Robot};
+use std::iter::FromIterator;
+use crate::envs::gym_env::Env;
+
+type State = i32;
+pub type XpState = (i32, i32);
+pub type XpSprimePr = (XpState, f64);
+
+impl Env<Robot<State, &'static str>, State, &'static str> for Robot<State, &'static str> {
+    fn make(na: i32, init_state: i32) -> Self {
+        Robot {
+            states: vec![],
+            init_state,
+            actions: 0..na,
+            labels: Default::default(),
+            transitions: Default::default(),
+            rewards: Default::default(),
+            alphabet: vec![],
+            state_mapping: Default::default(),
+            reverse_state_mapping: Default::default()
+        }
+    }
+
+    fn state_space(&mut self) {
+        self.states = (0i32..=4).collect();
+        self.state_mapping = HashMap::from_iter(
+            self.states.iter().enumerate().map(|(ix, s)| (*s, ix))
+        );
+        self.reverse_state_mapping = HashMap::from_iter(
+            self.states.iter().enumerate().map(|(ix, x)| (ix, *x))
+        );
+    }
+
+    fn step(&mut self, state: &i32, a: i32) -> Result<Vec<(i32, f64, &'static str)>, &'static str> {
+        if *state == 0 {
+            match a {
+                0 => { Ok(vec![(0, 0.01, "begin"), (1, 0.99, "init")]) }
+                _ => { Err("Action must be 0") }
+            }
+        } else if *state == 1 {
+            match a {
+                0 => { Ok(vec![(2, 1.0, "ready")]) }
+                _ => { Err("Action must be 0") }
+            }
+        } else if *state == 2 {
+            match a {
+                0 => { Ok(vec![(4, 0.01, "exit"), (3, 0.99, "send")]) }
+                1 => { Ok(vec![(4, 1.0, "exit")]) }
+                _ => { Err("Action must be 0 or 1") }
+            }
+        } else if *state == 3 {
+            match a {
+                0 => { Ok(vec![(2, 1.0, "ready")]) }
+                _ => { Err("Action must be 0") }
+            }
+        } else {
+            match a {
+                0 => { Ok(vec![(0, 1.0, "begin")]) }
+                _ => { Err("Action must be 0") }
+            }
+        }
+    }
+
+    fn transition_map(&mut self, r: &f64) {
+        let state_space = self.states.to_vec();
+        for s in state_space.iter() {
+            for a in self.actions.start..self.actions.end {
+                match self.step(s, a) {
+                    Ok(v) => {
+                        self.transitions.insert((*s, a), v);
+                        self.rewards.insert((*s, a), *r);
+                    }
+                    Err(_) => {}
+                }
+            }
+        }
+    }
+}
+```
+
+</details>
+
+### Constructing a Task
 To specify DFA the following convention can be followed. Suppose that we want to verify that a robot goes to 
 a certain position and is facing a specific direction. In this framework a DFA is comprised of two generics
 `W` which is a word and `T` which is usually a pointer to data that the DFA needs to know about the environment.
@@ -184,9 +274,13 @@ fn lr_replenishment(data: &Data<LowResWord, &Info>) -> i32 {
 ```
 
 
-### Constructing a rewards model
+### Constructing a Rewards Model
 
-### Forming a product MDP
+### Forming a Product MDP
+
+### Synthesising Schedulers
+
+### Visualisation
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
