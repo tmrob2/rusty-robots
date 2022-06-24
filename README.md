@@ -309,7 +309,7 @@ fn transition_map(&mut self, r: &f64) {
 
 ### Forming a Product MDP 
 
-A product MDP $\mathcal{M}_i \times \mathcal{A}_j$ is a tuple $\mathcal{M} (S \times Q, (s_0, q_0), A, P', L') $ for each
+A product MDP $ \mathcal{M}_i \times \mathcal{A}_j $ is a tuple $ \mathcal{M} (S \times Q, (s_0, q_0), A, P', L') $ for each
 $i$-agent, $j$-task where,
 * S - MDP state space
 * Q - DFA state space
