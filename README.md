@@ -329,7 +329,7 @@ let mut mdp = low_fidelity_warehouse.product(&mut task, a as i32, t as i32, Some
 ```
 
 Usually these product MDPs are very demanding on memory, and as this framework aims for scalability
-we have to save the MDP state mapping $(S, Q) -> \mathtt{usize}$.
+we have to save the MDP state mapping $(S, Q) \mapsto \mathtt{usize}$.
 
 ```rust
 serialise_state_mapping(&make_serialised_state_map(&mdp.reverse_state_mapping), a as i32, t as i32);
