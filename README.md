@@ -149,6 +149,10 @@ See a full example
 <details>
 <summary>Environment Example</summary>
 
+#### Message Sending Example
+
+[![Product Name Screen Shot][mdp-example]](https://github/tmrob2/rusty-robots/)
+
 ```rust
 use hashbrown::HashMap;
 use crate::mdp::agent::{Robot};
@@ -276,7 +280,30 @@ fn lr_replenishment(data: &Data<LowResWord, &Info>) -> i32 {
 
 ### Constructing a Rewards Model
 
+The rewards model for an environment gets computed on every step in the transition map. 
+The following example implements a constant reward `r` for reward function `R(s, a)` for each 
+state and action.
+
+```rust
+fn transition_map(&mut self, r: &f64) {
+    let state_space = self.states.to_vec();
+    for s in state_space.iter() {
+        for a in self.actions.start..self.actions.end {
+            match self.step(s, a) {
+                Ok(v) => {
+                    self.transitions.insert((*s, a), v);
+                    self.rewards.insert((*s, a), *r);
+                }
+                Err(_) => {}
+            }
+        }
+    }
+}
+```
+
 ### Forming a Product MDP
+
+A product MDP is a tuple $M (S \times Q, (s_0, q_0), A, P', L') $
 
 ### Synthesising Schedulers
 
@@ -364,3 +391,4 @@ Project Link: [https://github.com/tmrob2/rusty-robots](https://github.com/tmrob2
 [linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=for-the-badge&logo=linkedin&colorB=555
 [linkedin-url]: https://linkedin.com/in/linkedin_username
 [product-screenshot]: img/warehouse_example.gif
+[mdp-example]: img/product_mdp_message_sending.png
