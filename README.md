@@ -117,9 +117,11 @@ add this to the bottom of your `.bashrc`.
 
 ### Prerequisites
 
-To solve a MOTAP problem we require `motap-hdd` from https://github.com/tmrob2/motap-hdd. Follow the
-setup instructions of this project. This will require seting up `Gurobi Optimizer` and `CXSparse` as a
-sparse matrix solver.
+To construct an agent environment and solve a MOTAP problem we require `motap-hdd` 
+from https://github.com/tmrob2/motap-hdd. 
+Follow the setup instructions of this project. 
+This will require also setting up `Gurobi Optimizer` (for solving Linear Programs) and `CXSparse` (as a
+sparse matrix solver).
 
 Cargo - The Rust package manager.
 
