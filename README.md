@@ -5,7 +5,7 @@
 [![Forks][forks-shield]][forks-url]
 [![Stargazers][stars-shield]][stars-url]
 [![Issues][issues-shield]][issues-url]
-[![MIT License][license-shield]][license-url]
+[![Apache-2.0 License][license-shield]][license-url]
 [![LinkedIn][linkedin-shield]][linkedin-url]
 -->
 [![Issues][issues-shield]][issues-url]
@@ -20,15 +20,14 @@
     <img src="images/logo.png" alt="Logo" width="80" height="80">
   </a>
 
-<h3 align="center">project_title</h3>
+<h3 align="center">Rusty Robots</h3>
 
   <p align="center">
-    project_description
+    A pure rust implementation for solving multiple-objective task allocation problems in multiagent systems 
     <br />
     <a href="https://github.com/tmrob2/rusty-robots"><strong>Explore the docs »</strong></a>
     <br />
     <br />
-    <a href="https://github.com/tmrob2/rusty-robots">View Demo</a>
     ·
     <a href="https://github.com/tmrob2/rusty-robots/issues">Report Bug</a>
     ·
@@ -39,35 +38,49 @@
 
 
 <!-- TABLE OF CONTENTS -->
-<details>
-  <summary>Table of Contents</summary>
-  <ol>
-    <li>
-      <a href="#about-the-project">About The Project</a>
-      <ul>
-        <li><a href="#built-with">Built With</a></li>
-      </ul>
-    </li>
-    <li>
-      <a href="#getting-started">Getting Started</a>
-      <ul>
-        <li><a href="#prerequisites">Prerequisites</a></li>
-        <li><a href="#installation">Installation</a></li>
-      </ul>
-    </li>
-    <li><a href="#usage">Usage</a></li>
-    <li><a href="#roadmap">Roadmap</a></li>
-    <li><a href="#contributing">Contributing</a></li>
-    <li><a href="#license">License</a></li>
-    <li><a href="#contact">Contact</a></li>
-    <li><a href="#acknowledgments">Acknowledgments</a></li>
-  </ol>
-</details>
+<summary>Table of Contents</summary>
+<ol>
+<li>
+  <a href="#about-the-project">About The Project</a>
+  <ul>
+    <li><a href="#built-with">Built With</a></li>
+  </ul>
+</li>
+<li>
+  <a href="#getting-started">Getting Started</a>
+  <ul>
+    <li><a href="#prerequisites">Prerequisites</a></li>
+    <li><a href="#installation">Installation</a></li>
+  </ul>
+</li>
+<li><a href="#usage">Usage</a></li>
+<li><a href="#roadmap">Roadmap</a></li>
+<li><a href="#contributing">Contributing</a></li>
+<li><a href="#license">License</a></li>
+<li><a href="#contact">Contact</a></li>
+<li><a href="#acknowledgments">Acknowledgments</a></li>
+</ol>
 
 
 
 <!-- ABOUT THE PROJECT -->
 ## About The Project
+
+Allocating a set of tasks to a set of agents is an NP-hard problem. To determine the
+cost that an agent expects that a task will take usually some form of rich model is 
+required. Especially when there is uncertainty in robot action outcomes and multiple objectives are required. 
+This prototype project seeks to define the robot environments, in the form of Markov decision processes (MDP), 
+and tasks, in the form of deterministic finite automata (DFA), which can be applied to them. 
+It then calls a multiobjective task allocation and planning (MOTAP) software using a model called a 
+sequential composition product MDP,
+which efficiently computes the task allocation and a set of schedulers which agents can execute 
+concurrently. 
+
+The following gif demonstrates the allocation of tasks to a set of agents in a warehouse simulation as
+a high level demonstration of the MOTAP capabilities. In this diagram, 30 tasks are allocated to 20 agents 
+while satisfying the multiobjective tradeoff between the cost required for an agent to execute a set of tasks,
+and the probability requirement of completing of tasks. 
+
 
 [![Product Name Screen Shot][product-screenshot]](https://github/tmrob2/rusty-robots/)
 
@@ -165,7 +178,7 @@ Don't forget to give the project a star! Thanks again!
 <!-- LICENSE -->
 ## License
 
-Distributed under the MIT License. See `LICENSE.txt` for more information.
+Distributed under the Apache-2.0 License. See `LICENSE` for more information.
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
@@ -174,7 +187,7 @@ Distributed under the MIT License. See `LICENSE.txt` for more information.
 <!-- CONTACT -->
 ## Contact
 
-Your Name - [@twitter_handle](https://twitter.com/twitter_handle) - email@email_client.com
+Thomas Robinson - [@twitter_handle](https://twitter.com/twitter_handle) - tmr463@uowmail.edu.au
 
 Project Link: [https://github.com/tmrob2/rusty-robots](https://github.com/tmrob2/rusty-robots)
 
@@ -204,7 +217,7 @@ Project Link: [https://github.com/tmrob2/rusty-robots](https://github.com/tmrob2
 [issues-shield]: https://img.shields.io/github/issues/tmrob2/rusty-robots.svg?style=for-the-badge
 [issues-url]: https://github.com/tmrob2/rusty-robots/issues
 [license-shield]: https://img.shields.io/github/license/tmrob2/rusty-robots.svg?style=for-the-badge
-[license-url]: https://github.com/tmrob2/rusty-robots/blob/master/LICENSE.txt
+[license-url]: https://github.com/tmrob2/rusty-robots/blob/master/LICENSE
 [linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=for-the-badge&logo=linkedin&colorB=555
 [linkedin-url]: https://linkedin.com/in/linkedin_username
 [product-screenshot]: img/warehouse_example.gif
