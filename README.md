@@ -68,9 +68,9 @@ required. Especially when there is uncertainty in robot action outcomes and mult
 This prototype project seeks to define the robot environments, in the form of Markov decision processes (MDP), 
 and tasks, in the form of deterministic finite automata (DFA), which can be applied to them. 
 It then calls a multiobjective task allocation and planning (MOTAP) software using a model called a 
-sequential composition product MDP,
+sequential composition product MDP (SCPM),
 which efficiently computes the task allocation and a set of schedulers which agents can execute 
-concurrently. 
+concurrently. An SCPM consists of virtual transitions which link product MDPs for efficient computation purposes.
 
 The following gif demonstrates the allocation of tasks to a set of agents in a warehouse simulation as
 a high level demonstration of the MOTAP capabilities. In this diagram, 30 tasks are allocated to 20 agents 
@@ -307,9 +307,10 @@ fn transition_map(&mut self, r: &f64) {
 }
 ```
 
-### Forming a Product MDP
+### Forming a Product MDP 
 
-A product MDP is a tuple $\mathcal{M} (S \times Q, (s_0, q_0), A, P', L') $ where
+A product MDP $\mathcal{M}_i \times \mathcal{A}_j$ is a tuple $\mathcal{M} (S \times Q, (s_0, q_0), A, P', L') $ for each
+$i$-agent, $j$-task where,
 * S - MDP state space
 * Q - DFA state space
 * $(s_0, q_0)$ - initial state
@@ -337,8 +338,133 @@ serialise_state_mapping(&make_serialised_state_map(&mdp.reverse_state_mapping), 
 
 Also the transition matrices must be saved to disk as they quickly overload system resources. This is 
 handled on construction of the SCPM and gets saved to the `transitions` directory. 
+### Constructing an SCPM
+
+An SCPM is constructed incrementally by constructing each of the $\mathcal{M_i} \times \mathcal{A_j}$, and 
+labelling functions, saving them to disk, and then dropping the product from memory. This is implemented
+with a memory block. 
+
+#### Setting the Initial States
+For incremental construction of the SCPM, the initial states are first defined and stored in a `HashMap`
+otherwise we will have no idea where our virtual transitions connecting the product MDPs in the SCPM will 
+lead to. Taking the warehouse example this looks like the following: 
+```rust
+// ---------------------------------------------------------
+//                     Construct Initial States
+// ---------------------------------------------------------
+// incorporate a progress bar as this is a long running computation
+// and we want to keep updated on our progress
+let bar = ProgressBar::new((na * nt) as u64);
+bar.set_style(ProgressStyle::default_bar()
+    .template("[{elapsed_precise}] {bar:40.white/red} {pos:>7}/{len:7} {msg}")
+    .progress_chars("##-"));
+// Loop over all of the tasks
+for t in 0..nt {
+    // generate a bunch of random replenishment tasks
+    warehouse_info.lookup_rack = task_positions[t];
+    warehouse_info.feed_option = task_feed_points[t];
+    // loop over all of the agents 
+    for a in 0..na {
+        // increment the progress bar by one
+        bar.inc(1);
+        bar.set_message("constructing initial states");
+        // set the regeneration point of the warehouse so that an agent may efficiently compute a 
+        // number of consecutive tasks
+        low_fidelity_warehouse.init_state = agent_start_pos[a];
+        initial_robot_states[a] = low_fidelity_warehouse.init_state.clone();
+        // Construct the task DFA
+        let mut task = DFA2::<_, _, &Info>::init(
+            0, &Q, &[3], &[], lr_replenishment, Some(&warehouse_info)
+        );
+        // construct the product MDP
+        let mut mdp = low_fidelity_warehouse.product(&mut task, a as i32, t as i32, Some(&warehouse_info));
+        // save the state mappings to disk, we will use this later to get the inverse mapping from the 
+        // SCPM state to the MDP state back to the environment state
+        serialise_state_mapping(&make_serialised_state_map(&mdp.reverse_state_mapping), a as i32, t as i32);
+        // set the initial state of the product MDP
+        let init_idx = *mdp.state_mapping.get(&mdp.init_state).unwrap();
+        // capture the inital state in a HashMap
+        initial_states.insert((a as i32, t as i32), init_idx);
+    }
+}
+```
+
+#### Incrementally Construct the SCPM
+
+Once we have found the initial states, we can go about constructing the SCPM. The following snippet follows
+our running warehouse example:
+```rust
+// ---------------------------------------------------------
+//                     Construct Products
+// ---------------------------------------------------------
+// construct a progress bar as this is a long running task
+let bar = ProgressBar::new((na * nt) as u64);
+bar.set_style(ProgressStyle::default_bar()
+    .template("[{elapsed_precise}] {bar:40.white/red} {pos:>7}/{len:7} {msg}")
+    .progress_chars("##-"));
+// loop over all of the tasks
+for t in 0..nt {
+    // generate nt random replenishment tasks
+    warehouse_info.lookup_rack = task_positions[t];
+    warehouse_info.feed_option = task_feed_points[t];
+    // loop over all of the agents
+    for a in 0..na {
+        // increment the progress bar
+        bar.inc(1);
+        bar.set_message("constructing SCPM");
+        low_fidelity_warehouse.init_state = agent_start_pos[a];
+        // construct the task - bit of duplication but because we are memory contrained 
+        // we can't re-use a reference
+        let mut task = DFA2::<_,_,&Info>::init(
+            0, &Q, &[3], &[], lr_replenishment, Some(&warehouse_info)
+        );
+        // construct the DP product
+        let mut mdp = low_fidelity_warehouse.product(&mut task, a as i32, t as i32, Some(&warehouse_info));
+        // get the initial state
+        let init_idx = *mdp.state_mapping.get(&mdp.init_state).unwrap();
+        // Set the next agent M x A init state [For switch transition]
+        let next_agent_idx = if a < na - 1 {
+            *initial_states.get(&(a as i32 + 1, t as i32)).unwrap()
+        } else {
+            init_idx
+        };
+        // Set the next task M x A init state [For switch transition] 
+        let next_task_idx = if t < nt - 1 {
+            *initial_states.get(&(0, t as i32 + 1)).unwrap()
+        } else {
+            init_idx
+        };
+        // Add all of the information to the SCPM data structure
+        scpm.add_mdp_to_self(&mut mdp, next_agent_idx as usize, next_task_idx as usize);
+        // Specify the action space
+        let act_start = scpm.actions.start;
+        let act_end = scpm.actions.end;
+        // Add a placeholder for the threadpool to execute constructing the sparse transition matrix
+        // as well as a dense rewards matrix for each action in the action space
+        pool.execute(move || {
+            SCPM::incremental_construct_spblas_and_rewards(mdp, act_start, act_end, na, nt);
+        });
+    }
+}
+// execute and kill the threadpool
+pool.join();
+```
 
 ### Synthesising Schedulers
+
+A scheduler synthesis algorithm is then used to construct the set of schedulers corresponding to points
+on the Pareto curve. This forms a downward closure encompassing our target threshold vector $\boldsymbol{t}$.
+```rust
+// specify the target threshold (costs) for the agents to perform their tasks
+let mut target = vec![-65.; na];
+// specify the probability threshold for which the agents need to perform the tasks to
+let mut ttask = vec![0.99; nt];
+target.append(&mut ttask);
+// Synthesis the schedulers, and the convex hull of the approximating the multi-objective Pareto 
+// curve of this problem
+let (mus_, hullset) =
+    scpm.imovi_hdd_multi_object_solver(eps, &target[..]);
+```
 
 ### Visualisation
 
