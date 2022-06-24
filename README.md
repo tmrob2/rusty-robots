@@ -250,7 +250,7 @@ Project Link: [https://github.com/tmrob2/rusty-robots](https://github.com/tmrob2
 [issues-shield]: https://img.shields.io/github/issues/tmrob2/rusty-robots.svg?style=for-the-badge
 [issues-url]: https://github.com/tmrob2/rusty-robots/issues
 [license-shield]: https://img.shields.io/github/license/tmrob2/rusty-robots.svg?style=for-the-badge
-[license-url]: https://github.com/tmrob2/rusty-robots/blob/master/LICENSE
+[license-url]: https://github.com/tmrob2/rusty-robots/LICENSE
 [linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=for-the-badge&logo=linkedin&colorB=555
 [linkedin-url]: https://linkedin.com/in/linkedin_username
 [product-screenshot]: img/warehouse_example.gif
