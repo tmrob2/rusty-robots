@@ -100,7 +100,8 @@ pub struct Info<'a> {
     pub feed_points: &'a [Point],
     pub width: usize,
     pub height: usize,
-    pub rotation_mapping: &'a mut HashMap<u8, (i32, i32)>
+    pub rotation_mapping: &'a mut HashMap<u8, (i32, i32)>,
+    pub queue_point: Point
 }
 
 impl<'a> Info<'a> {
@@ -120,7 +121,8 @@ impl<'a> Info<'a> {
             feed_points: feedpoints,
             width: w,
             height: h,
-            rotation_mapping
+            rotation_mapping,
+            queue_point: (0, 0)
         }
     }
     
@@ -136,7 +138,7 @@ impl<'a> Info<'a> {
                 any racks, make the width dimension larger or check a \
                 horizontal configuration"); // if this check fails then construction of the warehouse will fail
                 for c in 0..cells {
-                    for y in 1..self.height - 1 {
+                    for y in 2..self.height - 2 {
                         // add the racks
                         for ii in 0..2 {
                             self.rack_positions.push(((c * 3 + 2 + ii) as i32, y as i32));

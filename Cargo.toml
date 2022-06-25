@@ -17,6 +17,7 @@ serde = "1.0.137"
 rand = "0.8.5"
 indicatif = "0.16.2"
 threadpool = "1.8.1"
+num_cpus = "1.13.1"
 
 [[bin]]
 name = "warehouse"

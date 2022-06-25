@@ -19,22 +19,33 @@ use scpm::solver::*;
 use rusty_robots::env::warehouse::low_fidelity_warehouse::{LowResEnv, LowResState, LowResWord};
 use rusty_robots::env::warehouse::high_fidelity_warehouse::{create_decoded_sched_to_file, front_pos,
                                                             Info, Point, State, TaskActionPair, warehouse_defaults, WarehouseEnv, WarehouseWord};
+use num_cpus;
+
+const THREAD_COUNT_SAVE: usize = 30; // the number of threads to use in threadpools
+const THREAD_COUNT_LOAD: usize = 10;
 
 fn main() {
-    let na: usize = 20;
-    let nt: usize = 30;
 
-    let w: i32 = 20;
-    let h: i32 = 20;
+    let cpus_available = num_cpus::get();
+    let cpus_used_save: usize = if cpus_available > THREAD_COUNT_SAVE { THREAD_COUNT_SAVE } else { cpus_available };
+    let cpus_used_load: usize = if cpus_available > THREAD_COUNT_LOAD { THREAD_COUNT_LOAD } else { cpus_available };
+    // Check file system has been created
+
+    let na: usize = 2;
+    let nt: usize = 5;
+
+    let w: i32 = 7;
+    let h: i32 = 7;
 
     // ---------------------------------------------------------
     //                Warehouse Setup information
     // ---------------------------------------------------------
     let mut rnd = StdRng::seed_from_u64(1234);
-    let feed_points = vec![(0, 2), (0, 10)];
+    let feed_points = vec![(0, 2)];
+    let queue_points = vec![(6, 6), (4, 6)];
     // randomly choose the feed points for each task
     let task_feed_points = (0..nt)
-        .map(|_| *vec![0, 1].choose(&mut rnd).unwrap()).collect::<Vec<usize>>();
+        .map(|_| *vec![0].choose(&mut rnd).unwrap()).collect::<Vec<usize>>();
     let (mut racks, mut corridors, mut rotation_mapping) =
         warehouse_defaults();
     let mut warehouse_info = Info::make(
@@ -61,7 +72,7 @@ fn main() {
 
     let mut agent_start_pos: Vec<Point> = vec![];
     for x in 2..w {
-        if agent_start_pos.len() < 20 {
+        if agent_start_pos.len() < 2 {
             agent_start_pos.push((x, 0));
             agent_start_pos.push((x, h - 1));
         }
@@ -98,7 +109,7 @@ fn main() {
         // ------------------------------------------------------------
         // Construct a Threadpool to load transition matrices from disk
         // ------------------------------------------------------------
-        let pool = threadpool::ThreadPool::new(10);
+        let pool = threadpool::ThreadPool::new(cpus_used_load);
         println!("Inputting MDPs");
         let mut initial_robot_states: Vec<LowResState> = vec![Default::default(); na];
         let mut initial_states: HashMap<(i32, i32), usize> = HashMap::new();
@@ -176,7 +187,7 @@ fn main() {
         pool.join();
         println!("MDP |S|: {:?}, |P|: {:?}", scpm.states, scpm.num_transitions);
         println!("init state: {:?}", scpm.get_init_state(0, 0));
-        let mut target = vec![-65.; na];
+        let mut target = vec![-25.; na];
         let mut ttask = vec![0.99; nt];
         target.append(&mut ttask);
 
@@ -240,9 +251,6 @@ fn main() {
     high_fidelity_warehouse.warehouse_state_space(&warehouse_info.corridor_positions[..]);
     high_fidelity_warehouse.warehouse_transition_map(&1., &warehouse_info);
 
-    //vec![(0, 0), (11, 4), (0, 7), (11, 11)];
-    //
-
     // construct the mdp of the task to the allocated agent
 
     let mut pi_mappings: std::collections::HashMap<(i32, i32), std::collections::HashMap<String, std::collections::HashMap<String, Vec<TaskActionPair>>>> =
@@ -250,7 +258,6 @@ fn main() {
     let mut agent_costs: Vec<f64> = vec![0.; na];
     let mut allocations_per_agent: Vec<Vec<usize>> = vec![Vec::new(); na];
 
-    // Run an initial test, for task 0 calculate the plan for the high fidelity warehouse
     for t in 0..nt {
         let k = weight_vector.get(&(t as i32))
             .unwrap()
@@ -366,7 +373,7 @@ fn main() {
         ));
         agent_costs[*agent] += objvals[0];
     }
-    let pool = threadpool::ThreadPool::new(30);
+    let pool = threadpool::ThreadPool::new(cpus_used_save);
 
     for ((a, t), v) in pi_mappings.into_iter() {
         pool.execute(move || {
@@ -384,7 +391,130 @@ fn main() {
             ).unwrap();
         });
     }
-    pool.join()
+    pool.join();
+
+
+    // ------------------------------------------------------
+    //                Regeneration Schedulers
+    // ------------------------------------------------------
+    // Now we need a scheduler which returns the agents back to the queue position
+    let mut regeneration_schedulers: std::collections::HashMap<usize, std::collections::HashMap<String, std::collections::HashMap<String, Vec<TaskActionPair>>>> =
+        std::collections::HashMap::new();
+    // For each agent compute a scheduler which gets to the queue position for this agent
+    for a in 0..na {
+        high_fidelity_warehouse.init_state = State {
+            agent_dir: 1,
+            agent_position: agent_start_pos[a].clone(),
+            carrying: 0,
+            pack_available: 0,
+            pack_position: (-1, -1)
+        };
+        warehouse_info.queue_point = queue_points[a].clone();
+        let Q = (0..3).collect::<Vec<i32>>();
+        // construct the DFA
+        let mut task = DFA2::<_,_,&Info>::init(
+            0, &Q, &[1], &[],
+            regeneration, Some(&warehouse_info)
+        );
+        // construct the Product MDP
+        println!("making regeneration task");
+        let mut mdp = high_fidelity_warehouse.product(
+            &mut task,
+            a as i32,
+            0,
+            Some(&warehouse_info)
+        );
+
+        // Get the initial state of the product DFA
+        let init_idx = *mdp.state_mapping.get(&mdp.init_state).unwrap();
+
+        //println!("Executing planning for product");
+        // Construct all of the necessary data structures to conduct sparse value iteration on the MDP
+        //
+        let eps: f64 = 1e-5;
+        // determine the set of proper policies and randomly choose an initial one
+        let ns: usize = mdp.states.len();
+
+        let proper_policies = proper_policies(&mut mdp);
+        // determine the available actions for each state
+        let available_actions = set_available_actions(
+            &mut mdp,
+            high_fidelity_warehouse.action_space().start,
+            high_fidelity_warehouse.action_space().end
+        );
+        mdp_rewards_fn(
+            &mut mdp,
+            high_fidelity_warehouse.action_space().start,
+            high_fidelity_warehouse.action_space().end
+        );
+
+        let mut cs_matricies: Vec<_> = Vec::new();
+        let mut rewards_map: HashMap<i32, Vec<f64>> = HashMap::new();
+
+        let mdp_reverse_state_mapping: HashMap<usize, (i32, i32)>;
+
+        {
+            // compute the sparse matricies involved; Transitions and Rewards for each action
+            // the mdp get consumed at this step and therefore we need to save the reverse state map to
+            // memory before we consume the MDP
+            mdp_reverse_state_mapping = mdp.reverse_state_mapping.clone();
+
+            let (transition_matrices, mut rewards_matrices) = construct_spblas_and_rewards(
+                mdp,
+                high_fidelity_warehouse.action_space().start,
+                high_fidelity_warehouse.action_space().end,
+            );
+            for action in high_fidelity_warehouse.action_space().start..high_fidelity_warehouse.action_space().end {
+                let S = transition_matrices.get(&action).unwrap();
+                cs_matricies.push(SparseMatrixAttr {
+                    m: sparse_to_cs(S),
+                    nr: S.nr as usize,
+                    nc: S.nc as usize,
+                    nnz: S.nz as usize
+                });
+                rewards_map.insert(action, rewards_matrices.remove(&action).unwrap());
+            }
+        }
+
+        let (pi, _objvals) = mdp_sparse_value_iter(
+            eps,
+            high_fidelity_warehouse.action_space().len(),
+            high_fidelity_warehouse.actions.start,
+            high_fidelity_warehouse.actions.end,
+            ns,
+            init_idx,
+            &proper_policies,
+            &available_actions,
+            &cs_matricies[..],
+            &rewards_map
+        );
+
+        regeneration_schedulers.insert(a, create_decoded_sched_to_file(
+            &pi[..],
+            &mdp_reverse_state_mapping,
+            &high_fidelity_warehouse.reverse_state_mapping
+        ));
+    }
+    if
+    let pool = threadpool::ThreadPool::new(30);
+
+    for (a, v) in regeneration_schedulers.into_iter() {
+        pool.execute(move || {
+            let pth = format!("{}/schedulers/", std::env::var("SCPM_HOME").unwrap());
+            let filename = format!("{}/regen_{}.txt", pth, a);
+            let file = OpenOptions::new()
+                .create(true)
+                .write(true)
+                .truncate(true)
+                .open(filename).unwrap();
+            let f = BufWriter::new(file);
+            serde_json::to_writer_pretty(
+                f,
+                &v
+            ).unwrap();
+        });
+    }
+    pool.join();
 }
 
 fn goto_rack_position(data: &Data<LowResWord, &Info>, qprime: i32, q: i32) -> i32 {
@@ -537,6 +667,35 @@ fn hr_replenishment(data: &Data<WarehouseWord, &Info>) -> i32 {
     };
     match qprime {
         Ok(i) =>  { i }
+        Err(_) => { -1 }
+    }
+}
+
+fn goto_queue_pos(data: &Data<WarehouseWord, &Info>) -> i32 {
+    let info_ref: &&Info = data.info.as_ref().unwrap();
+    if data.w.agent_position == info_ref.queue_point {
+        return 1
+    }
+    return 0
+}
+
+fn finish_regen() -> i32 {
+    2
+}
+
+fn done_regen() -> i32 {
+    2
+}
+
+fn regeneration(data: &Data<WarehouseWord, &Info>) -> i32 {
+    let qprime = match data.q {
+        0 => { Ok(goto_queue_pos(&data)) }
+        1 => {Ok(finish_regen())}
+        2 => {Ok(done_regen())}
+        _ => { Err("Q state not found")}
+    };
+    match qprime {
+        Ok(i) => { i }
         Err(_) => { -1 }
     }
 }
