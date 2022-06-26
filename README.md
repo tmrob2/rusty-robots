@@ -457,6 +457,9 @@ pool.join();
 
 ### Synthesising Schedulers
 
+The schedule is the agent _brain_ and without it the agents can not act on their own. A scheduler is a 
+function mapping $\mu: S \mapsto A$ that is every state is mapped to an action in the action space. 
+
 A scheduler synthesis algorithm is then used to construct the set of schedulers corresponding to points
 on the Pareto curve. This forms a downward closure encompassing our target threshold vector $\boldsymbol{t}$.
 ```rust
@@ -473,6 +476,14 @@ let (mus_, hullset) =
 
 ### Visualisation
 
+The schedulers created in the previous step are inserted into the directory `$SCPM_HOME/schedulers/map_{agent}_{task}.txt`.
+These schedulers can either be converted to a Python dictionary for integration into OpenAI-gym or
+parsed into `HashMaps` for a compiled language such as Rust.
+
+The visualisation of the environment has been adapted from [TeamGrid](https://github.com/mila-iqia/teamgrid). However,
+some significant modifications have been made. In addition to replicating our warehouse environment
+the `step` function considers $\mathtt{drop}, \mathtt{pickup}$ actions, there are no walls, the
+agent renders the object that it is carrying, and we implement a `DFA` class to handle tasks. 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
 
@@ -480,10 +491,7 @@ let (mus_, hullset) =
 <!-- ROADMAP -->
 ## Roadmap
 
-- [ ] Feature 1
-- [ ] Feature 2
-- [ ] Feature 3
-    - [ ] Nested Feature
+- [ ] Construct warehouse as a Python OpenAI-gym environment and call the Rust SCPM API from this framework to make the project more accessible
 
 See the [open issues](https://github.com/tmrob2/rusty-robots/issues) for a full list of proposed features (and known issues).
 
@@ -532,7 +540,7 @@ Project Link: [https://github.com/tmrob2/rusty-robots](https://github.com/tmrob2
 <!-- ACKNOWLEDGMENTS -->
 ## Acknowledgments
 
-* []()
+* [TeamGrid Rendering](https://github.com/mila-iqia/teamgrid)
 * []()
 * []()
 
