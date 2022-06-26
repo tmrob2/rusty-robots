@@ -73,9 +73,11 @@ which efficiently computes the task allocation and a set of schedulers which age
 concurrently. An SCPM consists of virtual transitions which link product MDPs for efficient computation purposes.
 
 The following gif demonstrates the allocation of tasks to a set of agents in a warehouse simulation as
-a high level demonstration of the MOTAP capabilities. In this diagram, 30 tasks are allocated to 20 agents 
+a high level demonstration of the MOTAP capabilities. In this diagram, 9 tasks are allocated to 4 agents 
 while satisfying the multiobjective tradeoff between the cost required for an agent to execute a set of tasks,
-and the probability requirement of completing of tasks. 
+and the probability requirement of completing of tasks. The agents adhere to traffic management rules, and some
+simple collision avoidance rules are implemented. This demonstrates that although task allocation and planning are carried
+out according to the condititions of the SCPM, powerful multiagent models can still be generated. 
 
 
 [![Product Name Screen Shot][product-screenshot]](https://github/tmrob2/rusty-robots/)
