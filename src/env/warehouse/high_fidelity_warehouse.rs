@@ -401,12 +401,12 @@ pub trait WarehouseEnv: Env<Robot<State, WarehouseWord>, State, WarehouseWord> +
                         //if px >= *min_x + 2 && px <= *max_x - 2 && py >= *min_y && py <= *max_y && px % 2 != 0 {
                         if px <= *max_x - 2 && py >= *min_y && py <= *max_y && px % 2 != 0 {
                             // odds only go down
-                            if fy < py {
+                            if fy < py || fy == py {
                                 new_agent_positions = fwd_position.unwrap();
                             }
                         } //else if px >= *min_x + 2 && px <= *max_x - 2 && py >= *min_y && py <= *max_y && px % 2 == 0 {
                         else if px <= *max_x - 2 && py >= *min_y && py <= *max_y && px % 2 == 0 {
-                            if fy > py {
+                            if fy > py || fy == py {
                                 new_agent_positions = fwd_position.unwrap();
                             }
                         } else {
