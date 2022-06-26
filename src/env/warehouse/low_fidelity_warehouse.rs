@@ -84,7 +84,7 @@ impl LowResEnv<Robot<LowResState, LowResWord>, LowResState, LowResWord> for Robo
     fn step(&mut self, state: &LowResState, a: i32, w: &i32, h: &i32, info: &Info)
         -> Result<Vec<(i32, f64, LowResWord)>, &'static str> {
 
-        let (min_x, min_y) = info.rack_positions.iter().min().unwrap();
+        let (_min_x, min_y) = info.rack_positions.iter().min().unwrap();
         let (max_x, max_y) = info.rack_positions.iter().max().unwrap();
 
         let (px, py) = state;

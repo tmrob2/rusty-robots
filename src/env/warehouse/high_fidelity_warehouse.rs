@@ -355,7 +355,7 @@ pub trait WarehouseEnv: Env<Robot<State, WarehouseWord>, State, WarehouseWord> +
         self.set_reverse_state_mapping();
     }
 
-    fn warehouse_step(&self, state: &State, a: i32, info: &Info, min_x: &i32, max_x: &i32, min_y: &i32, max_y: &i32)
+    fn warehouse_step(&self, state: &State, a: i32, info: &Info, max_x: &i32, min_y: &i32, max_y: &i32)
         -> Result<Vec<(State, f64, WarehouseWord)>, &'static str> {
         let mut new_dir = state.agent_dir;
         let mut new_agent_positions: Point = state.agent_position;
@@ -487,12 +487,12 @@ pub trait WarehouseEnv: Env<Robot<State, WarehouseWord>, State, WarehouseWord> +
 
     fn warehouse_transition_map(&mut self, r: &f64, info: &Info) {
         let states = self.get_states().to_vec();
-        let (min_x, min_y) = info.rack_positions.iter().min().unwrap();
+        let (_min_x, min_y) = info.rack_positions.iter().min().unwrap();
         let (max_x, max_y) = info.rack_positions.iter().max().unwrap();
         for state in states.iter() {
             let state_idx = *self.get_state_mapping().get(state).unwrap() as i32;
             for a in 0..self.action_space().end {
-                let sprimes = self.warehouse_step(state, a, info, min_x, max_x, min_y, max_y).unwrap();
+                let sprimes = self.warehouse_step(state, a, info, max_x, min_y, max_y).unwrap();
                 let sprime_mapping: Vec<(i32, f64, WarehouseWord)> = sprimes
                     .iter()
                     .map(|(s, p, w)|
