@@ -72,7 +72,7 @@ sequential composition product MDP (SCPM),
 which efficiently computes the task allocation and a set of schedulers which agents can execute 
 concurrently. An SCPM consists of virtual transitions which link product MDPs for efficient computation purposes.
 
-The following graphic demonstrates the allocation of tasks to a set of agents in a warehouse simulation as
+The following graphic demonstrates the allocating a batch of tasks to a set of agents in a warehouse simulation as
 a high level demonstration of the MOTAP capabilities. In this diagram, 9 tasks are allocated to 4 agents 
 while satisfying the multiobjective tradeoff between the cost required for an agent to execute a set of tasks,
 and the probability requirement of completing of tasks. The agents adhere to traffic management rules, and some
