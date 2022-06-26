@@ -551,5 +551,5 @@ Project Link: [https://github.com/tmrob2/rusty-robots](https://github.com/tmrob2
 [license-url]: https://github.com/tmrob2/rusty-robots/LICENSE
 [linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=for-the-badge&logo=linkedin&colorB=555
 [linkedin-url]: https://linkedin.com/in/linkedin_username
-[product-screenshot]: img/warehouse_example.gif
+[product-screenshot]: img/12x12-4a-9t-collision-avoidance.gif
 [mdp-example]: img/product_mdp_message_sending.png

@@ -31,24 +31,23 @@ fn main() {
     let cpus_used_load: usize = if cpus_available > THREAD_COUNT_LOAD { THREAD_COUNT_LOAD } else { cpus_available };
     // Check file system has been created
 
-    let na: usize = 2;
-    let nt: usize = 5;
+    let na: usize = 4;
+    let nt: usize = 9;
 
-    let w: i32 = 7;
-    let h: i32 = 7;
-
+    let w: i32 = 12;
+    let h: i32 = 12;
     // ---------------------------------------------------------
     //                Warehouse Setup information
     // ---------------------------------------------------------
     let mut rnd = StdRng::seed_from_u64(1234);
-    let feed_points = vec![(0, 2)];
-    let queue_points = vec![(6, 6), (4, 6)];
+    let feed_points = vec![(0, 5)];
+    let queue_points = vec![(11, 11), (0, 11), (3, 11), (9, 0)];
     // randomly choose the feed points for each task
     let task_feed_points = (0..nt)
         .map(|_| *vec![0].choose(&mut rnd).unwrap()).collect::<Vec<usize>>();
     let (mut racks, mut corridors, mut rotation_mapping) =
         warehouse_defaults();
-    let mut warehouse_info = Info::make(
+    let mut warehouse_info: Info = Info::make(
         &mut racks,
         &mut corridors,
         &mut rotation_mapping,
@@ -70,9 +69,9 @@ fn main() {
         .map(|(i, _p)| i)
         .choose_multiple(&mut rnd, nt);
 
-    let mut agent_start_pos: Vec<Point> = vec![];
+    let mut agent_start_pos: Vec<Point> = vec![];//(2, 0), (3, 0), (4, 11)];
     for x in 2..w {
-        if agent_start_pos.len() < 2 {
+        if agent_start_pos.len() < na {
             agent_start_pos.push((x, 0));
             agent_start_pos.push((x, h - 1));
         }
@@ -84,7 +83,7 @@ fn main() {
         let mut low_fidelity_warehouse: Robot<LowResState, LowResWord> =
             Robot::make(4, Default::default());
         low_fidelity_warehouse.state_space(&w, &h, 1);
-        low_fidelity_warehouse.transition_map(&1.0, &w, &h);
+        low_fidelity_warehouse.transition_map(&1.0, &w, &h, &warehouse_info);
 
         println!("Agent start positions: {:?}", agent_start_pos);
         println!("warehouse init state: {:?}", low_fidelity_warehouse.get_init_state());
@@ -94,6 +93,8 @@ fn main() {
                  task_positions.iter().map(|&i| &warehouse_info.rack_positions[i]).collect::<Vec<&Point>>()
         );
         println!("Task feeds: {:?}", task_feed_points);
+        println!("Queue points: {:?}", queue_points);
+        println!("Feed Points: {:?}", feed_points);
 
         // ------------------------------------------------------------
         //                     Initialise SCPM
@@ -187,7 +188,7 @@ fn main() {
         pool.join();
         println!("MDP |S|: {:?}, |P|: {:?}", scpm.states, scpm.num_transitions);
         println!("init state: {:?}", scpm.get_init_state(0, 0));
-        let mut target = vec![-25.; na];
+        let mut target = vec![-50.; na];
         let mut ttask = vec![0.99; nt];
         target.append(&mut ttask);
 
@@ -495,7 +496,6 @@ fn main() {
             &high_fidelity_warehouse.reverse_state_mapping
         ));
     }
-    if
     let pool = threadpool::ThreadPool::new(30);
 
     for (a, v) in regeneration_schedulers.into_iter() {

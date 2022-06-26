@@ -4,7 +4,7 @@ use itertools::iproduct;
 use scpm::agent::{Agent, MDPState, Robot};
 use scpm::scpm::definition::TaskAgentStateActionPair;
 use serde::Serialize;
-use crate::env::warehouse::high_fidelity_warehouse::Point;
+use crate::env::warehouse::high_fidelity_warehouse::{Info, Point};
 
 pub type LowResState = (i32, i32);
 
@@ -38,10 +38,10 @@ pub trait LowResEnv<T, S, W> where T: Agent<S, W>, W: Clone {
 
     fn state_space(&mut self, w: &i32, h: &i32, grid_square: usize) -> (i32, i32);
 
-    fn step(&mut self, state: &S, a: i32, w: &i32, h: &i32)
+    fn step(&mut self, state: &S, a: i32, w: &i32, h: &i32, info: &Info)
         -> Result<Vec<(i32, f64, W)>, &'static str>;
 
-    fn transition_map(&mut self, r: &f64, w: &i32, h: &i32);
+    fn transition_map(&mut self, r: &f64, w: &i32, h: &i32, info: &Info);
 }
 
 impl LowResEnv<Robot<LowResState, LowResWord>, LowResState, LowResWord> for Robot<LowResState, LowResWord> {
@@ -81,8 +81,12 @@ impl LowResEnv<Robot<LowResState, LowResWord>, LowResState, LowResWord> for Robo
         (wnew, hnew)
     }
 
-    fn step(&mut self, state: &LowResState, a: i32, w: &i32, h: &i32)
+    fn step(&mut self, state: &LowResState, a: i32, w: &i32, h: &i32, info: &Info)
         -> Result<Vec<(i32, f64, LowResWord)>, &'static str> {
+
+        let (min_x, min_y) = info.rack_positions.iter().min().unwrap();
+        let (max_x, max_y) = info.rack_positions.iter().max().unwrap();
+
         let (px, py) = state;
         // Left
         let (xnew, ynew) = if a == 0 {
@@ -99,16 +103,28 @@ impl LowResEnv<Robot<LowResState, LowResWord>, LowResState, LowResWord> for Robo
                 (*px, *py)
             }
         } else if a == 2 {
-            if *py < *h - 1 {
-                (*px, *py + 1)
-            } else {
+            // up
+            //if *px >= *min_x + 2 && *px <= *max_x - 2 && *py >= *min_y &&*py <= *max_y && *px % 2 != 0 {
+            if *px <= *max_x - 2 && *py >= *min_y &&*py <= *max_y && *px % 2 != 0 {
                 (*px, *py)
+            } else {
+                if *py < *h - 1 {
+                    (*px, *py + 1)
+                } else {
+                    (*px, *py)
+                }
             }
         } else if a == 3 {
-            if *py > 0 {
-                (*px, *py - 1)
-            } else {
+            // down
+            //if *px >= *min_x + 2 && *px <= *max_x - 2 && *py >= *min_y &&*py <= *max_y && *px % 2 != 0 {
+            if *px <= *max_x - 2 && *py >= *min_y &&*py <= *max_y && *px % 2 != 0 {
                 (*px, *py)
+            } else {
+                if *py > 0 {
+                    (*px, *py - 1)
+                } else {
+                    (*px, *py)
+                }
             }
         } else {
             panic!("Action not found")
@@ -118,12 +134,12 @@ impl LowResEnv<Robot<LowResState, LowResWord>, LowResState, LowResWord> for Robo
         Ok(vec![(*sidx as i32, 1.0, LowResWord::new(&snew))])
     }
 
-    fn transition_map(&mut self, r: &f64, w: &i32, h: &i32) {
+    fn transition_map(&mut self, r: &f64, w: &i32, h: &i32, info: &Info) {
         let state_space = self.states.to_vec();
         for s in state_space.iter() {
             let sidx = *self.get_state_mapping().get(s).unwrap();
             for a in self.actions.start..self.actions.end {
-                match self.step(s, a, w, h) {
+                match self.step(s, a, w, h, info) {
                     Ok(v) => {
                         self.transitions.insert((sidx as i32, a), v);
                         self.insert_reward(sidx as i32, a, *r);
