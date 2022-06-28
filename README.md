@@ -78,7 +78,7 @@ while satisfying the multiobjective tradeoff between the cost required for an ag
 and the probability requirement of completing of tasks. The agents adhere to traffic management rules, and some
 simple collision avoidance rules are implemented. This demonstrates that although task allocation and planning are carried
 out according to the conditions of the SCPM, powerful multiagent models can still be generated. This is a relatively small
-example, and much larger systems can be easily generated. 
+example, and much larger systems can be easily generated.
 
 
 [![Product Name Screen Shot][product-screenshot]](https://github/tmrob2/rusty-robots/)

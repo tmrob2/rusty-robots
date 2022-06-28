@@ -188,12 +188,12 @@ fn main() {
         pool.join();
         println!("MDP |S|: {:?}, |P|: {:?}", scpm.states, scpm.num_transitions);
         println!("init state: {:?}", scpm.get_init_state(0, 0));
-        let mut target = vec![-50.; na];
+        let mut target = vec![-15.; na];
         let mut ttask = vec![0.99; nt];
         target.append(&mut ttask);
 
-        let (mus_, _hullset) =
-            scpm.imovi_hdd_multi_object_solver(eps, &target[..]);
+        let (mus_, _hullset, tnew) =
+            scpm.imovi_hdd_multi_object_solver(eps, &target[..], 10., 0.1);
 
         mus = mus_;
 
@@ -231,7 +231,7 @@ fn main() {
         let solution = scpm.gurobi_task_witness(
             &costs,
             &probs,
-            &target[..],
+            &tnew[..],
             mus.len(),
             nt,
             na)
